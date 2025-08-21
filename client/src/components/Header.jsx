@@ -120,7 +120,7 @@ const Header = () => {
                 viewport={{ once: true, amount: 0.3 }}
                 className="mt-4 text-neutral-600 text-sm"
             >
-                Generated using <span className="font-semibold">Imagify</span>
+                Generated using <span className="font-semibold">artzen</span>
             </motion.p>
         </div>
     );

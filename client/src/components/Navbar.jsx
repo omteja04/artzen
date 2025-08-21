@@ -22,7 +22,7 @@ const Navbar = ({ onLoginClick }) => {
             className="flex items-center justify-between py-4 px-4 sm:px-8 "
         >
             <NavLink to="/">
-                <img src={assets.logo} alt="imagify-logo" className="w-32 sm:w-40" />
+                <img src={assets.logo} alt="artzen-logo" className="w-32 sm:w-40" />
             </NavLink>
 
             <div>

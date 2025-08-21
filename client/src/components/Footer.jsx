@@ -9,7 +9,7 @@ const Footer = () => {
             <div className="relative flex items-center justify-between max-w-6xl mx-auto">
                 <motion.img
                     src={assets.logo}
-                    alt="Imagify Logo"
+                    alt="artzen Logo"
                     className="w-32 sm:w-40"
                     initial={{ opacity: 0, x: -30 }}
                     whileInView={{ opacity: 1, x: 0 }}
