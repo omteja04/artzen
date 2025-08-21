@@ -21,8 +21,9 @@ const Navbar = ({ onLoginClick }) => {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex items-center justify-between py-4 px-4 sm:px-8 "
         >
-            <NavLink to="/">
-                <img src={assets.logo} alt="artzen-logo" className="w-32 sm:w-40" />
+            <NavLink to="/" className={`flex justify-center items-center gap-3`}>
+                <img src={assets.logo_icon} alt="artzen-logo" className="w-9 sm:12" />
+                <h1 className="text-3xl font-semibold">artzen</h1>
             </NavLink>
 
             <div>

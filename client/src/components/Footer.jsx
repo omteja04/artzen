@@ -2,19 +2,29 @@ import React from "react";
 import { assets } from "../assets/assets";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import { NavLink } from "react-router-dom";
 
 const Footer = () => {
     return (
         <footer className="mt-16 mb-1 py-6 px-4 border-t border-gray-200">
             <div className="relative flex items-center justify-between max-w-6xl mx-auto">
-                <motion.img
-                    src={assets.logo}
-                    alt="artzen Logo"
-                    className="w-32 sm:w-40"
-                    initial={{ opacity: 0, x: -30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6 }}
-                />
+                <NavLink to="/" className={`flex justify-center items-center gap-3`}>
+
+                    <motion.img
+                        src={assets.logo_icon}
+                        alt="artzen Logo"
+                        className="w-9 sm:12"
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.6 }}
+                    />
+                    <motion.h1
+                        className="text-3xl font-semibold"
+                        initial={{ opacity: 0, x: -30 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.6 }}
+                    >artzen</motion.h1>
+                </NavLink>
 
                 <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
                     <motion.p
