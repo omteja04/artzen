@@ -1,10 +1,11 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { AppContext } from "../context/AppContext";
-// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
+import { api } from "../api/api";
 
 const Login = ({ onClose }) => {
-    const { setUser } = useContext(AppContext) || {};
+    const { setUser, setToken } = useContext(AppContext) || {};
     const [isSignUp, setIsSignUp] = useState(false);
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
@@ -15,6 +16,13 @@ const Login = ({ onClose }) => {
         loginId: "",
     });
     const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -45,22 +53,49 @@ const Login = ({ onClose }) => {
         setLoading(true);
 
         try {
-            await new Promise((r) => setTimeout(r, 1000));
+            let payload;
+            let endpoint;
 
             if (isSignUp) {
-                if (setUser) setUser({ name: form.name, username: form.username, email: form.email });
+                endpoint = "/auth/sign-up";
+                payload = {
+                    name: form.name,
+                    username: form.username,
+                    email: form.email,
+                    password: form.password,
+                };
             } else {
-                if (setUser)
-                    setUser({ name: form.loginId.split("@")[0], email: form.loginId });
+                endpoint = "/auth/sign-in";
+                payload = {
+                    loginId: form.loginId,
+                    password: form.password,
+                };
             }
 
-            onClose?.();
-        } catch {
-            setErrors({ form: "Something went wrong" });
+            const response = await api.post(endpoint, payload);
+            const { success, message, data } = response.data;
+
+            if (success) {
+                setUser(data.user);
+                setToken(data.accessToken);
+                console.log("Login response:", data.user, data.accessToken);
+
+                localStorage.setItem("user", JSON.stringify(data.user));
+                localStorage.setItem("token", data.accessToken);
+                toast.success(message);
+                onClose?.();
+            } else {
+                toast.error(message);
+            }
+        } catch (err) {
+            console.error("Login error:", err);
+            setErrors({ form: err.response?.data?.message || "Something went wrong" });
+            toast.error(err.response?.data?.message || "Something went wrong");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <AnimatePresence>
@@ -78,7 +113,6 @@ const Login = ({ onClose }) => {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 relative"
                 >
-                    {/* Close */}
                     <button
                         onClick={onClose}
                         className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
@@ -104,7 +138,6 @@ const Login = ({ onClose }) => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Sign Up Fields */}
                         {isSignUp ? (
                             <>
                                 <div>
@@ -114,13 +147,10 @@ const Login = ({ onClose }) => {
                                         name="name"
                                         value={form.name}
                                         onChange={handleChange}
-                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.name ? "border-red-400" : "border-gray-300"
-                                            }`}
-                                        placeholder="yourname"
+                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.name ? "border-red-400" : "border-gray-300"}`}
+                                        placeholder="Your Name"
                                     />
-                                    {errors.name && (
-                                        <p className="text-xs text-red-600">{errors.name}</p>
-                                    )}
+                                    {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
                                 </div>
 
                                 <div>
@@ -130,14 +160,12 @@ const Login = ({ onClose }) => {
                                         name="username"
                                         value={form.username}
                                         onChange={handleChange}
-                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.username ? "border-red-400" : "border-gray-300"
-                                            }`}
-                                        placeholder="yourusername"
+                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.username ? "border-red-400" : "border-gray-300"}`}
+                                        placeholder="Username"
                                     />
-                                    {errors.username && (
-                                        <p className="text-xs text-red-600">{errors.username}</p>
-                                    )}
+                                    {errors.username && <p className="text-xs text-red-600">{errors.username}</p>}
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Email</label>
                                     <input
@@ -145,36 +173,27 @@ const Login = ({ onClose }) => {
                                         name="email"
                                         value={form.email}
                                         onChange={handleChange}
-                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.email ? "border-red-400" : "border-gray-300"
-                                            }`}
+                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.email ? "border-red-400" : "border-gray-300"}`}
                                         placeholder="you@example.com"
                                     />
-                                    {errors.email && (
-                                        <p className="text-xs text-red-600">{errors.email}</p>
-                                    )}
+                                    {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
                                 </div>
                             </>
                         ) : (
                             <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Username or Email
-                                </label>
+                                <label className="block text-sm font-medium mb-1">Username or Email</label>
                                 <input
                                     type="text"
                                     name="loginId"
                                     value={form.loginId}
                                     onChange={handleChange}
-                                    className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.loginId ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                    placeholder="username or email"
+                                    className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.loginId ? "border-red-400" : "border-gray-300"}`}
+                                    placeholder="Username or Email"
                                 />
-                                {errors.loginId && (
-                                    <p className="text-xs text-red-600">{errors.loginId}</p>
-                                )}
+                                {errors.loginId && <p className="text-xs text-red-600">{errors.loginId}</p>}
                             </div>
                         )}
 
-                        {/* Password */}
                         <div>
                             <label className="block text-sm font-medium mb-1">Password</label>
                             <input
@@ -182,16 +201,12 @@ const Login = ({ onClose }) => {
                                 name="password"
                                 value={form.password}
                                 onChange={handleChange}
-                                className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.password ? "border-red-400" : "border-gray-300"
-                                    }`}
+                                className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.password ? "border-red-400" : "border-gray-300"}`}
                                 placeholder="••••••••"
                             />
-                            {errors.password && (
-                                <p className="text-xs text-red-600">{errors.password}</p>
-                            )}
+                            {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
                         </div>
 
-                        {/* Submit */}
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.95 }}
@@ -199,17 +214,10 @@ const Login = ({ onClose }) => {
                             disabled={loading}
                             className="w-full bg-zinc-900 text-white py-2.5 rounded-full hover:bg-zinc-800 transition disabled:opacity-60"
                         >
-                            {loading
-                                ? isSignUp
-                                    ? "Signing Up..."
-                                    : "Signing In..."
-                                : isSignUp
-                                    ? "Sign Up"
-                                    : "Sign In"}
+                            {loading ? (isSignUp ? "Signing Up..." : "Signing In...") : (isSignUp ? "Sign Up" : "Sign In")}
                         </motion.button>
                     </form>
 
-                    {/* Switch form */}
                     <p className="text-sm text-gray-600 text-center mt-4">
                         {isSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}
                         <button

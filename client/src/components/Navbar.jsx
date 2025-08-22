@@ -6,11 +6,11 @@ import { AppContext } from "../context/AppContext.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = ({ onLoginClick }) => {
-    const { user, setUser } = useContext(AppContext);
+    const { user, setUser, setToken, logout } = useContext(AppContext);
     const [isOpen, setIsOpen] = useState(false);
 
     const handleLogout = () => {
-        setUser(null);
+        logout();
         setIsOpen(false);
     };
 
@@ -35,12 +35,12 @@ const Navbar = ({ onLoginClick }) => {
                         >
                             <img src={assets.credit_star} alt="credit-star" className="w-5" />
                             <p className="text-xs sm:text-sm font-medium text-gray-700">
-                                Credits Left: 50
+                                Credits Left: {user.creditBalance}
                             </p>
                         </NavLink>
 
                         <p className="max-sm:hidden text-gray-700 font-medium">
-                            Hi, Omteja
+                            Hi, {user.username || "User"}
                         </p>
 
                         {/* Profile Dropdown */}
@@ -63,25 +63,6 @@ const Navbar = ({ onLoginClick }) => {
                                         className="absolute right-0 mt-3 w-44 rounded-xl shadow-lg bg-white border z-20"
                                     >
                                         <ul className="list-none p-2 text-sm text-gray-700">
-                                            {/* <li>
-                                                <NavLink
-                                                    to="/profile"
-                                                    className="flex items-center gap-2 w-full py-2 px-3 rounded-md hover:bg-gray-100 transition"
-                                                    onClick={() => setIsOpen(false)}
-                                                >
-                                                    <img src={assets.profile_icon} alt="" className="w-5" />
-                                                    Profile
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink
-                                                    to="/settings"
-                                                    className="flex items-center gap-2 w-full py-2 px-3 rounded-md hover:bg-gray-100 transition"
-                                                    onClick={() => setIsOpen(false)}
-                                                >
-                                                    ⚙️ Settings
-                                                </NavLink>
-                                            </li> */}
                                             <li>
                                                 <button
                                                     onClick={handleLogout}
