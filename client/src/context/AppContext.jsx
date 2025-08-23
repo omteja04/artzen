@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
-import { api } from "../api/api";
+import { api, setLogoutHandler } from "../api/api";
 
 export const AppContext = createContext();
 
@@ -22,6 +22,11 @@ const AppContextProvider = ({ children }) => {
     const [showLogin, setShowLogin] = useState(null);
     const [credit, setCredits] = useState(null);
 
+    useEffect(() => {
+        setLogoutHandler(() => {
+            setShowLogin(true);
+        });
+    }, []);
 
     useEffect(() => {
         if (user) localStorage.setItem("user", JSON.stringify(user));
