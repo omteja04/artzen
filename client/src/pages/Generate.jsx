@@ -12,14 +12,14 @@ const Generate = () => {
     const [loading, setLoading] = useState(false);
     const [input, setInput] = useState('');
 
-    const { user, setAuthModal, generateImage } = useContext(AppContext);
+    const { user, setShowLogin, generateImage } = useContext(AppContext);
     const navigate = useNavigate();
     useEffect(() => {
         if (!user) {
-            setAuthModal("signup");
+            setShowLogin(true);
             navigate("/");
         }
-    }, [user, setAuthModal, navigate]);
+    }, [user, setShowLogin, navigate]);
     if (!user) return null;
     const onSubmitHandler = async (e) => {
         e.preventDefault();

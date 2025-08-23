@@ -5,7 +5,7 @@ import { PORT } from './config/env.js';
 import connectDB from './database/mongodb.js';
 import errorMiddleware from './middlewares/error.middleware.js';
 import authRouter from './routes/auth.routes.js';
-import imageRouter from './routes/image.routes.js';
+import userRouter from './routes/user.routes.js';
 
 const app = express();
 app.use(cors({
@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/user', imageRouter);
+app.use('/api/v1/user', userRouter);
 app.use(errorMiddleware)
 
 app.get('/', (req, res) => {

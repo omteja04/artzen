@@ -2,12 +2,10 @@
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { api } from "../api/api";
-import { useNavigate } from "react-router-dom";
 
 export const AppContext = createContext();
 
 const AppContextProvider = ({ children }) => {
-    const navigate = useNavigate();
     const backendURL = import.meta.env.VITE_BACKEND_URL;
 
     const [user, setUser] = useState(() => {
@@ -21,7 +19,7 @@ const AppContextProvider = ({ children }) => {
     });
 
     const [token, setToken] = useState(() => localStorage.getItem("token") || null);
-    const [authModal, setAuthModal] = useState(null);
+    const [showLogin, setShowLogin] = useState(null);
     const [credit, setCredits] = useState(null);
 
 
@@ -84,7 +82,7 @@ const AppContextProvider = ({ children }) => {
                 fetchCredits();
 
                 if (response.data.credits !== undefined && response.data.credits <= 0) {
-                    navigate('/buy');
+                    console.error("Bag Request: Buy Credits");
                 }
             }
         } catch (error) {
@@ -94,11 +92,9 @@ const AppContextProvider = ({ children }) => {
                 "Something went wrong"
             );
 
-            // Navigate if backend says no credits
             if (error.response?.status === 400 && error.response?.data?.message === "No Credit Balance") {
 
                 console.error("Bag Request: Buy Credits");
-                navigate('/buy');
             }
         }
     };
@@ -109,8 +105,8 @@ const AppContextProvider = ({ children }) => {
         setUser,
         token,
         setToken,
-        authModal,
-        setAuthModal,
+        showLogin,
+        setShowLogin,
         credit,
         backendURL,
         login,

@@ -12,5 +12,8 @@ export const {
     EMAIL_USER,
     EMAIL_PASSWORD,
     DB_URI,
-    CLIPDROP_API_KEY
+    CLIPDROP_API_KEY,
+    RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET,
+    CURRENCY
 } = process.env;

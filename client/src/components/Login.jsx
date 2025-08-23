@@ -33,7 +33,6 @@ const Login = ({ onClose }) => {
         loginId: "",
     });
     const [errors, setErrors] = useState({});
-
     useEffect(() => {
         document.body.style.overflow = "hidden";
         return () => {

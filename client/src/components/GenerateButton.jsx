@@ -6,14 +6,14 @@ import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 
 const GenerateButton = () => {
-    const { user, setAuthModal } = useContext(AppContext);
+    const { user, setShowLogin } = useContext(AppContext);
     const navigate = useNavigate();
 
     const onClickHandler = () => {
         if (user) {
             navigate('/generate');
         } else {
-            setAuthModal("signup");
+            setShowLogin(true);
         }
     };
     return (
