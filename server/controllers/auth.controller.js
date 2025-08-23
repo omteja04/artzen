@@ -15,6 +15,7 @@ import {
 
 /* ----------------------- Helpers ----------------------- */
 
+
 const sanitizeUser = (doc) => {
     const raw = doc.toObject ? doc.toObject() : doc;
     delete raw.password;
@@ -32,22 +33,22 @@ const createAccessToken = (userId) =>
 const createRefreshToken = (userId, version) =>
     jwt.sign({ userId, v: version }, JWT_REFRESH_TOKEN_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
 
+// Base cookie config for both tokens
 const cookieBase = {
     httpOnly: true,
     secure: NODE_ENV === "production",
-    // If your frontend and backend are on different domains, use "None".
-    // Keep "Strict" if same-site (same domain).
     sameSite: NODE_ENV === "production" ? "None" : "Lax",
+    path: "/", // Important for global access
 };
 
 const setAuthCookies = (res, accessToken, refreshToken) => {
-    // Access token cookie (short-lived)
+    // Short-lived access token
     res.cookie("access_token", accessToken, {
         ...cookieBase,
-        maxAge: 1000 * 60 * 60, // 1h max cap here; real expiry enforced by JWT
+        maxAge: 1000 * 60 * 60, // 1 hour
     });
 
-    // Refresh token cookie (long-lived)
+    // Long-lived refresh token
     res.cookie("refresh_token", refreshToken, {
         ...cookieBase,
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
@@ -55,17 +56,11 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
 };
 
 const clearAuthCookies = (res) => {
-    res.clearCookie("access_token", {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: NODE_ENV === "production" ? "None" : "Lax",
-    });
-    res.clearCookie("refresh_token", {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: NODE_ENV === "production" ? "None" : "Lax",
-    });
+    res.cookie("access_token", "", { ...cookieBase, expires: new Date(0) });
+    res.cookie("refresh_token", "", { ...cookieBase, expires: new Date(0) });
 };
+
+
 
 /* ----------------------- Controllers ----------------------- */
 
