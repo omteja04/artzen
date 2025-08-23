@@ -25,6 +25,7 @@ api.interceptors.response.use(
                 return api.request(error.config); // retry
             } catch (refreshError) {
                 // If refresh fails → trigger callback
+                console.log(refreshError);
                 localStorage.removeItem("token");
                 if (logoutCallback) logoutCallback();
             }
