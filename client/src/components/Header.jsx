@@ -105,7 +105,7 @@ const Header = () => {
                         whileHover={{ scale: 1.15, rotate: -2 }}
                         transition={{ type: "spring", stiffness: 150 }}
                         className="rounded-lg transition-transform duration-500 cursor-pointer shadow-md"
-                        src={index % 2 === 1 ? assets.sample_img_1 : assets.sample_img_2}
+                        src={assets[`sample_img_${index % 3 + 1}`]}
                         alt="sample"
                         width={80}
                     />

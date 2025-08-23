@@ -15,7 +15,7 @@ authRouter.post("/sign-up", signUp);
 authRouter.post("/sign-in", signIn);
 authRouter.get("/sign-out", signOut);
 
-authRouter.post("/refresh", refresh);
+authRouter.post("/refresh-token", refresh);
 
 // Example protected route
 // authRouter.get("/me", authorize, (req, res) => res.json({ success: true, user: req.user }));

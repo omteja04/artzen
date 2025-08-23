@@ -20,7 +20,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ["Content-Type", "Authorization", "x-refresh-token"]
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

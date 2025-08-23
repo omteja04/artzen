@@ -13,23 +13,29 @@ export const setLogoutHandler = (callback) => {
 };
 
 api.interceptors.response.use(
-    (response) => response,
+    response => response,
     async (error) => {
-        if (error.response && error.response.status === 401) {
+        const originalRequest = error.config;
+
+        // Avoid infinite loops
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
             try {
-                const refreshResponse = await api.post("/auth/refresh-token");
+                const refreshResponse = await api.post("/auth/refresh-token"); // backend route
                 const newToken = refreshResponse.data.accessToken;
 
+                // Store token and retry original request
                 localStorage.setItem("token", newToken);
-                error.config.headers.Authorization = `Bearer ${newToken}`;
-                return api.request(error.config); // retry
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return api.request(originalRequest);
             } catch (refreshError) {
-                // If refresh fails → trigger callback
-                console.log(refreshError);
+                // Refresh failed → logout
+                console.log("Refresh token failed:", refreshError);
                 localStorage.removeItem("token");
                 if (logoutCallback) logoutCallback();
             }
         }
+
         return Promise.reject(error);
     }
 );
