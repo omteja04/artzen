@@ -19,29 +19,20 @@ const AppContextProvider = ({ children }) => {
     });
 
     const [token, setToken] = useState(() => localStorage.getItem("token") || null);
-    const [showLogin, setShowLogin] = useState(null);
+    const [showLogin, setShowLogin] = useState(false);
     const [credit, setCredits] = useState(null);
 
-    useEffect(() => {
-        setLogoutHandler(() => {
-            setShowLogin(true);
-        });
-    }, []);
+    // global logout handler
+    useEffect(() => setLogoutHandler(() => logout()), []);
 
-    useEffect(() => {
-        if (user) localStorage.setItem("user", JSON.stringify(user));
-        else localStorage.removeItem("user");
-    }, [user]);
+    // persist user and token in localStorage
+    useEffect(() => user ? localStorage.setItem("user", JSON.stringify(user)) : localStorage.removeItem("user"), [user]);
+    useEffect(() => token ? localStorage.setItem("token", token) : localStorage.removeItem("token"), [token]);
 
-    useEffect(() => {
-        if (token) localStorage.setItem("token", token);
-        else localStorage.removeItem("token");
-    }, [token]);
-
-
-    const login = useCallback((userData, jwtToken) => {
+    const login = useCallback((userData, accessToken, refreshToken) => {
         setUser(userData);
-        setToken(jwtToken);
+        setToken(accessToken);
+        localStorage.setItem("refreshToken", refreshToken); // persist refresh token for incognito
     }, []);
 
     const logout = useCallback(() => {
@@ -50,10 +41,29 @@ const AppContextProvider = ({ children }) => {
         setCredits(null);
         localStorage.removeItem("user");
         localStorage.removeItem("token");
-        toast.success("User Logged out successfully");
+        localStorage.removeItem("refreshToken");
+        toast.success("User logged out successfully");
     }, []);
 
+    // refresh token logic
+    const refreshTokenFunc = useCallback(async () => {
+        try {
+            const refreshToken = localStorage.getItem("refreshToken");
+            if (!refreshToken) return logout();
 
+            const { data } = await api.post("/auth/refresh", {}, {
+                headers: { "x-refresh-token": refreshToken }
+            });
+
+            setToken(data.accessToken);
+            localStorage.setItem("refreshToken", data.refreshToken); // rotate refresh token
+        } catch (err) {
+            console.error("Failed to refresh token:", err);
+            logout();
+        }
+    }, [logout]);
+
+    // fetch user's credits
     const fetchCredits = useCallback(async () => {
         try {
             const { data } = await api.get("/user/credits");
@@ -68,42 +78,29 @@ const AppContextProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        if (token) {
-            fetchCredits();
-        }
+        if (token) fetchCredits();
     }, [token, fetchCredits]);
 
     const generateImage = async (prompt) => {
         try {
             const response = await api.post('/user/generate-image', { prompt });
-
             if (response.data.success) {
-                // Update frontend credits
                 fetchCredits();
                 return response.data.image;
             } else {
-                // Backend returned an error but not thrown
                 toast.error(response.data.message || "Failed to generate image");
                 fetchCredits();
-
                 if (response.data.credits !== undefined && response.data.credits <= 0) {
-                    console.error("Bag Request: Buy Credits");
+                    console.error("Bad Request: Buy Credits");
                 }
             }
         } catch (error) {
-            toast.error(
-                error.response?.data?.message ||
-                error.message ||
-                "Something went wrong"
-            );
-
+            toast.error(error.response?.data?.message || error.message || "Something went wrong");
             if (error.response?.status === 400 && error.response?.data?.message === "No Credit Balance") {
-
-                console.error("Bag Request: Buy Credits");
+                console.error("Bad Request: Buy Credits");
             }
         }
     };
-
 
     const value = {
         user,
@@ -116,6 +113,7 @@ const AppContextProvider = ({ children }) => {
         backendURL,
         login,
         logout,
+        refreshTokenFunc,
         fetchCredits,
         generateImage
     };

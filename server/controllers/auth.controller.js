@@ -86,19 +86,21 @@ export const signUp = async (req, res, next) => {
 
         const user = await User.create({ name, username, email, password: hashedPassword });
 
+        // Create tokens
         const accessToken = createAccessToken(user._id);
         const refreshToken = createRefreshToken(user._id, user.refreshTokenVersion);
 
+        // Store hashed refresh token in DB
         user.refreshTokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
         user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         await user.save({ validateBeforeSave: false });
 
-        setAuthCookies(res, accessToken, refreshToken);
-
+        // Return tokens in response body instead of cookies
         return res.status(201).json({
             success: true,
             message: "Signup successful",
             accessToken,
+            refreshToken,
             user: sanitizeUser(user),
         });
     } catch (err) {
@@ -112,31 +114,30 @@ export const signIn = async (req, res, next) => {
     try {
         const { loginId, password } = req.body;
         if (!loginId || !password)
-            return res.status(400).json({ success: false, message: "Email or username and password are required" });
+            return res.status(400).json({ success: false, message: "Email/username and password required" });
+
         const user = await User.findOne({
             $or: [{ email: loginId }, { username: loginId }],
         }).select("+password +refreshTokenVersion +refreshTokenHash");
+
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-        // Issue tokens
         const accessToken = createAccessToken(user._id);
         const refreshToken = createRefreshToken(user._id, user.refreshTokenVersion);
 
         // Store hashed refresh token in DB
-        const refreshHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
-        user.refreshTokenHash = refreshHash;
+        user.refreshTokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
         user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         await user.save({ validateBeforeSave: false });
-
-        setAuthCookies(res, accessToken, refreshToken);
 
         return res.status(200).json({
             success: true,
             message: "User signed in successfully",
             accessToken,
+            refreshToken, // <--- send refresh token in body, not cookie
             user: sanitizeUser(user),
         });
     } catch (err) {
@@ -144,14 +145,13 @@ export const signIn = async (req, res, next) => {
     }
 };
 
+
 // POST /api/v1/auth/refresh
 export const refresh = async (req, res, next) => {
     try {
-        const fromCookie = req.cookies?.refresh_token;
-        const fromHeader = req.headers["x-refresh-token"];
-        const incoming = fromCookie || fromHeader;
-
-        if (!incoming) return res.status(401).json({ success: false, message: "Refresh token missing" });
+        const incoming = req.headers["x-refresh-token"];
+        if (!incoming)
+            return res.status(401).json({ success: false, message: "Refresh token missing" });
 
         let payload;
         try {
@@ -165,18 +165,11 @@ export const refresh = async (req, res, next) => {
         );
         if (!user) return res.status(401).json({ success: false, message: "User not found" });
 
-        // version check (rotation invalidation)
         if (payload.v !== user.refreshTokenVersion)
             return res.status(401).json({ success: false, message: "Refresh token version mismatch" });
 
-        // compare hash
         const incomingHash = crypto.createHash("sha256").update(incoming).digest("hex");
-        if (
-            !user.refreshTokenHash ||
-            user.refreshTokenHash !== incomingHash ||
-            !user.refreshTokenExpires ||
-            user.refreshTokenExpires.getTime() <= Date.now()
-        ) {
+        if (!user.refreshTokenHash || user.refreshTokenHash !== incomingHash || !user.refreshTokenExpires || user.refreshTokenExpires.getTime() <= Date.now()) {
             return res.status(401).json({ success: false, message: "Refresh token invalid" });
         }
 
@@ -185,17 +178,20 @@ export const refresh = async (req, res, next) => {
         const newRefreshToken = createRefreshToken(user._id, user.refreshTokenVersion);
         user.refreshTokenHash = crypto.createHash("sha256").update(newRefreshToken).digest("hex");
         user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
         await user.save({ validateBeforeSave: false });
 
         const newAccessToken = createAccessToken(user._id);
-        setAuthCookies(res, newAccessToken, newRefreshToken);
 
-        return res.status(200).json({ success: true, accessToken: newAccessToken });
+        return res.status(200).json({
+            success: true,
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken, // <--- send rotated refresh token
+        });
     } catch (err) {
         next(err);
     }
 };
+
 
 // GET /api/v1/auth/sign-out
 export const signOut = async (req, res, next) => {

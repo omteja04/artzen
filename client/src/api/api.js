@@ -1,41 +1,54 @@
 import axios from "axios";
 
+let logoutHandler = null;
+
+export const setLogoutHandler = (cb) => {
+    logoutHandler = cb;
+};
+
 export const api = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
     headers: { "Content-Type": "application/json" },
-    withCredentials: true,
+    withCredentials: true, // send cookies
 });
 
-let logoutCallback;
+// Request interceptor to attach access token if available
+api.interceptors.request.use((config) => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+});
 
-export const setLogoutHandler = (callback) => {
-    logoutCallback = callback;
-};
-
+// Response interceptor to handle 401 (auto refresh)
 api.interceptors.response.use(
-    response => response,
-    async (error) => {
-        const originalRequest = error.config;
-
-        // Avoid infinite loops
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-            try {
-                const refreshResponse = await api.post("/auth/refresh-token"); // backend route
-                const newToken = refreshResponse.data.accessToken;
-
-                // Store token and retry original request
-                localStorage.setItem("token", newToken);
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                return api.request(originalRequest);
-            } catch (refreshError) {
-                // Refresh failed → logout
-                console.log("Refresh token failed:", refreshError);
-                localStorage.removeItem("token");
-                if (logoutCallback) logoutCallback();
+    (res) => res,
+    async (err) => {
+        const originalReq = err.config;
+        if (err.response?.status === 401 && !originalReq._retry) {
+            originalReq._retry = true;
+            const refreshToken = localStorage.getItem("refreshToken");
+            if (refreshToken) {
+                try {
+                    const { data } = await axios.post(
+                        `${import.meta.env.VITE_BACKEND_URL}/auth/refresh`,
+                        {},
+                        { headers: { "x-refresh-token": refreshToken }, withCredentials: true }
+                    );
+                    localStorage.setItem("accessToken", data.accessToken);
+                    localStorage.setItem("refreshToken", data.refreshToken);
+                    originalReq.headers.Authorization = `Bearer ${data.accessToken}`;
+                    return axios(originalReq);
+                } catch {
+                    // Refresh failed -> logout
+                    logoutHandler?.();
+                    return Promise.reject(err);
+                }
+            } else {
+                logoutHandler?.();
             }
         }
-
-        return Promise.reject(error);
+        return Promise.reject(err);
     }
 );

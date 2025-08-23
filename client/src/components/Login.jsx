@@ -72,13 +72,14 @@ const Login = ({ onClose }) => {
             const response = await api.post(endpoint, payload);
 
             if (response.data.success) {
-                const { user, accessToken, message } = response.data;
-                login(user, accessToken);
+                const { user, accessToken, refreshToken, message } = response.data;
+                login(user, accessToken, refreshToken); // pass all 3
                 toast.success(message);
                 onClose?.();
             } else {
                 toast.error(response.data.message);
             }
+
 
 
         } catch (err) {
