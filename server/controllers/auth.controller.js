@@ -37,7 +37,7 @@ const createRefreshToken = (userId, version) =>
 const cookieBase = {
     httpOnly: true,
     secure: NODE_ENV === "production",
-    sameSite: NODE_ENV === "production" ? "None" : "Lax",
+    sameSite: "none",
     path: "/", // Important for global access
 };
 
