@@ -91,23 +91,26 @@ export const signUp = async (req, res, next) => {
 
         const user = await User.create({ name, username, email, password: hashedPassword });
 
-        // Optional welcome email
-        await sendEmail({ to: user.email, type: "welcome", data: { name: user.name || "User" } });
+        const accessToken = createAccessToken(user._id);
+        const refreshToken = createRefreshToken(user._id, user.refreshTokenVersion);
+
+        user.refreshTokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+        user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await user.save({ validateBeforeSave: false });
+
+        setAuthCookies(res, accessToken, refreshToken);
 
         return res.status(201).json({
             success: true,
             message: "Signup successful",
-            user: {
-                id: user._id,
-                email: user.email,
-                username: user.username,
-                name: user.name,
-            },
+            accessToken,
+            user: sanitizeUser(user),
         });
     } catch (err) {
         next(err);
     }
 };
+
 
 // POST /api/v1/auth/sign-in
 export const signIn = async (req, res, next) => {
@@ -138,10 +141,8 @@ export const signIn = async (req, res, next) => {
         return res.status(200).json({
             success: true,
             message: "User signed in successfully",
-            data: {
-                accessToken,
-                user: sanitizeUser(user),
-            },
+            accessToken,
+            user: sanitizeUser(user),
         });
     } catch (err) {
         next(err);

@@ -6,7 +6,7 @@ import { AppContext } from "../context/AppContext.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = ({ onLoginClick }) => {
-    const { user, setUser, setToken, logout } = useContext(AppContext);
+    const { user, logout, credit } = useContext(AppContext);
     const [isOpen, setIsOpen] = useState(false);
 
     const handleLogout = () => {
@@ -35,7 +35,7 @@ const Navbar = ({ onLoginClick }) => {
                         >
                             <img src={assets.credit_star} alt="credit-star" className="w-5" />
                             <p className="text-xs sm:text-sm font-medium text-gray-700">
-                                Credits Left: {user.creditBalance}
+                                Credits Left: {credit ?? "--"}
                             </p>
                         </NavLink>
 

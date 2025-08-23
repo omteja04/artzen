@@ -1,27 +1,43 @@
-import React from "react";
+import React, { useContext } from "react";
 import Home from "./pages/Home";
 import BuyCredit from "./pages/BuyCredit";
 import Generate from "./pages/Generate";
-import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import AppContextProvider, { AppContext } from "./context/AppContext.jsx";
 import Footer from "./components/Footer.jsx";
 import Login from "./components/Login.jsx";
-import { useContext } from "react";
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
+
 const Layout = ({ onLoginClick }) => (
     <>
-        <ToastContainer position="bottom-right"/>
+        <ToastContainer position="bottom-right" />
         <Navbar onLoginClick={onLoginClick} />
         <Outlet />
         <Footer />
     </>
 );
 
-const router = (onLoginClick) =>
-    createBrowserRouter([
+const AppContent = () => {
+    const { authModal, setAuthModal } = useContext(AppContext);
+    return (
+        <>
+            {authModal && <Login mode={authModal} onClose={() => setAuthModal(null)} />}
+            <Outlet />
+        </>
+    );
+};
+
+const App = () => {
+    const router = createBrowserRouter([
         {
-            element: <Layout onLoginClick={onLoginClick} />,
+            element: (
+                <AppContextProvider>
+                    <Layout onLoginClick={() => { }}>
+                        <AppContent />
+                    </Layout>
+                </AppContextProvider>
+            ),
             children: [
                 { path: "/", element: <Home /> },
                 { path: "/generate", element: <Generate /> },
@@ -30,25 +46,7 @@ const router = (onLoginClick) =>
         },
     ]);
 
-const AppContent = () => {
-    const { authModal, setAuthModal } = useContext(AppContext);
-
-    return (
-        <div className="px-4 sm:px-10 md:px-14 lg:px-28 min-h-screen bg-gradient-to-b from-teal-50 to-orange-50">
-            <RouterProvider router={router(() => setAuthModal("login"))} />
-            {authModal && (
-                <Login mode={authModal} onClose={() => setAuthModal(null)} />
-            )}
-        </div>
-    );
-};
-
-const App = () => {
-    return (
-        <AppContextProvider>
-            <AppContent />
-        </AppContextProvider>
-    );
+    return <RouterProvider router={router} />;
 };
 
 export default App;

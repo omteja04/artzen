@@ -13,7 +13,7 @@ export const getUserCredits = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        res.status(200).json({ success: true, user });
+        res.status(200).json({ success: true, credits: user.creditBalance });
     } catch (error) {
         next(error);
     }
@@ -21,24 +21,18 @@ export const getUserCredits = async (req, res, next) => {
 
 export const generateImage = async (req, res, next) => {
     try {
-        const userId = req.user.id; // get from JWT
+        const userId = req.user.id;
         const { prompt } = req.body;
 
-        if (!prompt) {
-            return res.status(400).json({ success: false, message: 'Missing Prompt' });
-        }
+        if (!prompt) return res.status(400).json({ success: false, message: 'Missing Prompt' });
 
         const user = await User.findById(userId).select('-password');
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
+        if (!user.creditBalance || user.creditBalance <= 0)
+            return res.status(400).json({ success: false, message: 'No Credit Balance', credits: user.creditBalance });
 
-        if (!user.creditBalance || user.creditBalance <= 0) {
-            return res.status(400).json({ success: false, message: 'No Credit Balance', creditBalance: user.creditBalance });
-        }
-
-        // Generate image via ClipDrop
+        // Generate image via ClipDrop API
         const formData = new FormData();
         formData.append('prompt', prompt);
 
@@ -54,9 +48,8 @@ export const generateImage = async (req, res, next) => {
             }
         );
 
-
         const base64Image = Buffer.from(data, 'binary').toString('base64');
-        const resultImage = `data:image/png;base64,${base64Image}`;
+        const image = `data:image/png;base64,${base64Image}`;
 
         // Deduct 1 credit
         user.creditBalance -= 1;
@@ -65,10 +58,9 @@ export const generateImage = async (req, res, next) => {
         res.status(200).json({
             success: true,
             message: 'Image generated successfully',
-            creditBalance: user.creditBalance,
-            resultImage
+            credits: user.creditBalance,
+            image
         });
-
     } catch (error) {
         next(error);
     }

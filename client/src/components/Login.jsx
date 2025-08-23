@@ -1,11 +1,28 @@
 import React, { useState, useContext, useEffect } from "react";
 import { AppContext } from "../context/AppContext";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
-import { api } from "../api/api";
+import { api } from "../api/api.js";
+
+const validateForm = (form, isSignUp) => {
+    const errors = {};
+    if (isSignUp) {
+        if (!form.name.trim()) errors.name = "Name is required";
+        if (!form.username.trim()) errors.username = "Username is required";
+        if (!form.email.trim()) errors.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+            errors.email = "Invalid email";
+        if (!form.password) errors.password = "Password is required";
+    } else {
+        if (!form.loginId.trim()) errors.loginId = "Enter username or email";
+        if (!form.password) errors.password = "Password is required";
+    }
+    return errors;
+};
 
 const Login = ({ onClose }) => {
-    const { setUser, setToken } = useContext(AppContext) || {};
+    const { login } = useContext(AppContext) || {};
     const [isSignUp, setIsSignUp] = useState(false);
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
@@ -18,9 +35,9 @@ const Login = ({ onClose }) => {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = "hidden";
         return () => {
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = "unset";
         };
     }, []);
 
@@ -30,72 +47,49 @@ const Login = ({ onClose }) => {
         setErrors((er) => ({ ...er, [name]: "" }));
     };
 
-    const validate = () => {
-        const er = {};
-        if (isSignUp) {
-            if (!form.name.trim()) er.name = "Name is required";
-            if (!form.username.trim()) er.username = "Username is required";
-            if (!form.email.trim()) er.email = "Email is required";
-            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-                er.email = "Invalid email";
-            if (!form.password) er.password = "Password is required";
-        } else {
-            if (!form.loginId.trim()) er.loginId = "Enter username or email";
-            if (!form.password) er.password = "Password is required";
-        }
-        setErrors(er);
-        return Object.keys(er).length === 0;
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!validate()) return;
+        const newErrors = validateForm(form, isSignUp);
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
         setLoading(true);
 
         try {
-            let payload;
-            let endpoint;
-
-            if (isSignUp) {
-                endpoint = "/auth/sign-up";
-                payload = {
+            const endpoint = isSignUp ? "/auth/sign-up" : "/auth/sign-in";
+            const payload = isSignUp
+                ? {
                     name: form.name,
                     username: form.username,
                     email: form.email,
                     password: form.password,
-                };
-            } else {
-                endpoint = "/auth/sign-in";
-                payload = {
+                }
+                : {
                     loginId: form.loginId,
                     password: form.password,
                 };
-            }
 
             const response = await api.post(endpoint, payload);
-            const { success, message, data } = response.data;
 
-            if (success) {
-                setUser(data.user);
-                setToken(data.accessToken);
-                console.log("Login response:", data.user, data.accessToken);
-
-                localStorage.setItem("user", JSON.stringify(data.user));
-                localStorage.setItem("token", data.accessToken);
+            if (response.data.success) {
+                const { user, accessToken, message } = response.data;
+                login(user, accessToken);
                 toast.success(message);
                 onClose?.();
             } else {
-                toast.error(message);
+                toast.error(response.data.message);
             }
+
+
         } catch (err) {
-            console.error("Login error:", err);
-            setErrors({ form: err.response?.data?.message || "Something went wrong" });
-            toast.error(err.response?.data?.message || "Something went wrong");
+            const msg = err.response?.data?.message || "Something went wrong";
+            setErrors({ form: msg });
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
     };
-
 
     return (
         <AnimatePresence>
@@ -140,72 +134,86 @@ const Login = ({ onClose }) => {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {isSignUp ? (
                             <>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Full Name</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={form.name}
-                                        onChange={handleChange}
-                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.name ? "border-red-400" : "border-gray-300"}`}
-                                        placeholder="Your Name"
-                                    />
-                                    {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
-                                </div>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    placeholder="Full Name"
+                                    value={form.name}
+                                    onChange={handleChange}
+                                    className={`w-full rounded-lg border px-4 py-2.5 ${errors.name ? "border-red-400" : "border-gray-300"
+                                        }`}
+                                />
+                                {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
 
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Username</label>
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={form.username}
-                                        onChange={handleChange}
-                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.username ? "border-red-400" : "border-gray-300"}`}
-                                        placeholder="Username"
-                                    />
-                                    {errors.username && <p className="text-xs text-red-600">{errors.username}</p>}
-                                </div>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    placeholder="Username"
+                                    value={form.username}
+                                    onChange={handleChange}
+                                    className={`w-full rounded-lg border px-4 py-2.5 ${errors.username ? "border-red-400" : "border-gray-300"
+                                        }`}
+                                />
+                                {errors.username && (
+                                    <p className="text-xs text-red-600">{errors.username}</p>
+                                )}
 
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={form.email}
-                                        onChange={handleChange}
-                                        className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.email ? "border-red-400" : "border-gray-300"}`}
-                                        placeholder="you@example.com"
-                                    />
-                                    {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
-                                </div>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    placeholder="Email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    className={`w-full rounded-lg border px-4 py-2.5 ${errors.email ? "border-red-400" : "border-gray-300"
+                                        }`}
+                                />
+                                {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
+
+                                {/* Signup password */}
+                                <input
+                                    type="password"
+                                    name="password"
+                                    placeholder="Create Password"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    autoComplete="new-password"
+                                    className={`w-full rounded-lg border px-4 py-2.5 ${errors.password ? "border-red-400" : "border-gray-300"
+                                        }`}
+                                />
+                                {errors.password && (
+                                    <p className="text-xs text-red-600">{errors.password}</p>
+                                )}
                             </>
                         ) : (
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Username or Email</label>
+                            <>
                                 <input
                                     type="text"
                                     name="loginId"
+                                    placeholder="Username or Email"
                                     value={form.loginId}
                                     onChange={handleChange}
-                                    className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.loginId ? "border-red-400" : "border-gray-300"}`}
-                                    placeholder="Username or Email"
+                                    className={`w-full rounded-lg border px-4 py-2.5 ${errors.loginId ? "border-red-400" : "border-gray-300"
+                                        }`}
                                 />
-                                {errors.loginId && <p className="text-xs text-red-600">{errors.loginId}</p>}
-                            </div>
-                        )}
+                                {errors.loginId && (
+                                    <p className="text-xs text-red-600">{errors.loginId}</p>
+                                )}
 
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Password</label>
-                            <input
-                                type="password"
-                                name="password"
-                                value={form.password}
-                                onChange={handleChange}
-                                className={`w-full rounded-lg border px-4 py-2.5 outline-none focus:ring-2 focus:ring-zinc-900 ${errors.password ? "border-red-400" : "border-gray-300"}`}
-                                placeholder="••••••••"
-                            />
-                            {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
-                        </div>
+                                <input
+                                    type="password"
+                                    name="password"
+                                    placeholder="Enter Password"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    autoComplete="current-password"
+                                    className={`w-full rounded-lg border px-4 py-2.5 ${errors.password ? "border-red-400" : "border-gray-300"
+                                        }`}
+                                />
+                                {errors.password && (
+                                    <p className="text-xs text-red-600">{errors.password}</p>
+                                )}
+                            </>
+                        )}
 
                         <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -214,9 +222,16 @@ const Login = ({ onClose }) => {
                             disabled={loading}
                             className="w-full bg-zinc-900 text-white py-2.5 rounded-full hover:bg-zinc-800 transition disabled:opacity-60"
                         >
-                            {loading ? (isSignUp ? "Signing Up..." : "Signing In...") : (isSignUp ? "Sign Up" : "Sign In")}
+                            {loading
+                                ? isSignUp
+                                    ? "Signing Up..."
+                                    : "Signing In..."
+                                : isSignUp
+                                    ? "Sign Up"
+                                    : "Sign In"}
                         </motion.button>
                     </form>
+
 
                     <p className="text-sm text-gray-600 text-center mt-4">
                         {isSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}

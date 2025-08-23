@@ -1,9 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react';
 // eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion'
-import { assets } from '../assets/assets'
+import { motion } from 'framer-motion';
+import { assets } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const Generate = () => {
     const [image, setImage] = useState(assets.sample_img_1);
@@ -11,68 +12,79 @@ const Generate = () => {
     const [loading, setLoading] = useState(false);
     const [input, setInput] = useState('');
 
-    const { user, setAuthModal } = useContext(AppContext);
+    const { user, setAuthModal, generateImage } = useContext(AppContext);
     const navigate = useNavigate();
     useEffect(() => {
         if (!user) {
             setAuthModal("signup");
             navigate("/");
         }
-    }, [user]);
+    }, [user, setAuthModal, navigate]);
     if (!user) return null;
-
     const onSubmitHandler = async (e) => {
         e.preventDefault();
-        if (!input.trim()) return;
 
-        setLoading(true);
-        setIsImageLoaded(false);
+        if (!input.trim() || input.length < 5) {
+            toast.error("Enter a proper prompt");
+            return;
+        }
 
-        setTimeout(() => {
-            setImage(assets.sample_img_1);
-            setIsImageLoaded(true);
+        try {
+            setLoading(true);
+            setIsImageLoaded(false);
+
+            // Check frontend credits first
+            if (user.credits <= 0) {
+                toast.error("You don't have enough credits! Please buy more.");
+                navigate('/buy');
+                return;
+            }
+
+            // Call backend to generate image
+            const generatedImage = await generateImage(input);
+
+            if (generatedImage) {
+                setImage(generatedImage);
+                setIsImageLoaded(true);
+            }
+        } finally {
             setLoading(false);
-        }, 3000);
+        }
     };
+
 
     return (
         <form
             onSubmit={onSubmitHandler}
             className="flex flex-col min-h-[90vh] justify-center items-center"
         >
-            <div>
-                <div className="relative">
-                    {/* Animate image fade-in & scale */}
-                    <motion.img
-                        key={image} // ensures re-animation on change
-                        src={image}
-                        alt="generated"
-                        className="max-w-sm rounded shadow"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
-                    />
-
-                    {/* Loading bar */}
-                    <span
-                        className={`absolute left-0 bottom-0 h-1 bg-blue-500 
-                        ${loading ? 'w-full transition-[width] duration-[3s]' : 'w-0'}`}
-                    />
-                </div>
-
-                {loading && (
-                    <motion.p
-                        className="text-sm text-gray-600 mt-2 text-center"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: [0, 1, 0] }}
-                        transition={{ duration: 1.2, repeat: Infinity }}
-                    >
-                        Loading...
-                    </motion.p>
-                )}
+            <div className="relative">
+                <motion.img
+                    key={image}
+                    src={image}
+                    alt="generated"
+                    className="max-w-sm rounded shadow"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+                <span
+                    className={`absolute left-0 bottom-0 h-1 bg-blue-500 transition-all duration-700 ease-out`}
+                    style={{ width: loading ? "100%" : "0%" }}
+                />
             </div>
 
-            {/* Input bar when no image */}
+            {loading && (
+                <motion.p
+                    className="text-sm text-gray-600 mt-2 text-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                >
+                    Loading...
+                </motion.p>
+            )}
+
             {!isImageLoaded && (
                 <motion.div
                     className="flex w-full max-w-xl bg-neutral-500 text-white text-sm p-1 mt-10 rounded-full"
@@ -81,8 +93,8 @@ const Generate = () => {
                     transition={{ duration: 0.5 }}
                 >
                     <input
-                        onChange={(e) => setInput(e.target.value)}
                         value={input}
+                        onChange={(e) => setInput(e.target.value)}
                         type="text"
                         placeholder="Describe what you want to generate..."
                         className="flex-1 bg-transparent outline-none px-4 placeholder-gray-200"
@@ -98,7 +110,6 @@ const Generate = () => {
                 </motion.div>
             )}
 
-            {/* Action buttons after image loads */}
             {isImageLoaded && (
                 <motion.div
                     className="flex gap-3 flex-wrap justify-center text-sm p-1 mt-10"
@@ -109,7 +120,10 @@ const Generate = () => {
                     <motion.button
                         whileTap={{ scale: 0.9 }}
                         whileHover={{ scale: 1.05 }}
-                        onClick={() => setIsImageLoaded(false)}
+                        onClick={() => {
+                            setIsImageLoaded(false);
+                            setInput("");
+                        }}
                         type="button"
                         className="border border-zinc-900 text-black px-8 py-3 rounded-full hover:bg-gray-100 transition"
                     >
@@ -119,7 +133,7 @@ const Generate = () => {
                         whileTap={{ scale: 0.9 }}
                         whileHover={{ scale: 1.05 }}
                         href={image}
-                        download
+                        download={`image-${Date.now()}.png`}
                         className="bg-zinc-900 text-white px-10 py-3 rounded-full hover:bg-zinc-800 transition"
                     >
                         Download
