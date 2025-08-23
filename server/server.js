@@ -8,8 +8,17 @@ import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
 
 const app = express();
+const allowedOrigins = ['https://artzen.vercel.app'];
 app.use(cors({
-    origin: '*', // or '*' for all origins (not recommended in production)
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true); // allow server-to-server requests or Postman
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
