@@ -2,6 +2,7 @@ import axios from "axios";
 
 let logoutHandler = null;
 
+// a setter to assign the logout function from AppContext
 export const setLogoutHandler = (cb) => {
     logoutHandler = cb;
 };
@@ -9,44 +10,33 @@ export const setLogoutHandler = (cb) => {
 export const api = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL,
     headers: { "Content-Type": "application/json" },
-    withCredentials: true, // send cookies
+    withCredentials: true, // send cookies automatically
 });
 
-// Request interceptor to attach access token if available
+// attach access token
 api.interceptors.request.use((config) => {
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = localStorage.getItem("token");
     if (accessToken) {
         config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
 });
 
-// Response interceptor to handle 401 (auto refresh)
+// auto-refresh on 401
 api.interceptors.response.use(
-    (res) => res,
+    res => res,
     async (err) => {
         const originalReq = err.config;
         if (err.response?.status === 401 && !originalReq._retry) {
             originalReq._retry = true;
-            const refreshToken = localStorage.getItem("refreshToken");
-            if (refreshToken) {
-                try {
-                    const { data } = await axios.post(
-                        `${import.meta.env.VITE_BACKEND_URL}/auth/refresh`,
-                        {},
-                        { headers: { "x-refresh-token": refreshToken }, withCredentials: true }
-                    );
-                    localStorage.setItem("accessToken", data.accessToken);
-                    localStorage.setItem("refreshToken", data.refreshToken);
-                    originalReq.headers.Authorization = `Bearer ${data.accessToken}`;
-                    return axios(originalReq);
-                } catch {
-                    // Refresh failed -> logout
-                    logoutHandler?.();
-                    return Promise.reject(err);
-                }
-            } else {
+            try {
+                const { data } = await api.post("/auth/refresh");
+                localStorage.setItem("token", data.accessToken);
+                originalReq.headers.Authorization = `Bearer ${data.accessToken}`;
+                return api(originalReq);
+            } catch {
                 logoutHandler?.();
+                return Promise.reject(err);
             }
         }
         return Promise.reject(err);

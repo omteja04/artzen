@@ -22,7 +22,10 @@ const validateForm = (form, isSignUp) => {
 };
 
 const Login = ({ onClose }) => {
-    const { login } = useContext(AppContext) || {};
+    const context = useContext(AppContext);
+    if (!context) throw new Error("AppContext not found");
+    const { login } = context;
+
     const [isSignUp, setIsSignUp] = useState(false);
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
@@ -45,6 +48,18 @@ const Login = ({ onClose }) => {
         setForm((f) => ({ ...f, [name]: value }));
         setErrors((er) => ({ ...er, [name]: "" }));
     };
+
+    useEffect(() => {
+        setForm({
+            name: "",
+            username: "",
+            email: "",
+            password: "",
+            loginId: "",
+        });
+        setErrors({});
+    }, [isSignUp]);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();

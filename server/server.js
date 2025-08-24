@@ -8,7 +8,9 @@ import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
 
 const app = express();
-const allowedOrigins = ['https://artzen.vercel.app'];
+const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://artzen.vercel.app']
+    : ['http://localhost:5173',];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true); // allow server-to-server requests or Postman

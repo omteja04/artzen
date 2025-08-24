@@ -22,18 +22,23 @@ const AppContextProvider = ({ children }) => {
     const [showLogin, setShowLogin] = useState(false);
     const [credit, setCredits] = useState(null);
 
-    // global logout handler
-    useEffect(() => setLogoutHandler(() => logout()), []);
-
     // persist user and token in localStorage
-    useEffect(() => user ? localStorage.setItem("user", JSON.stringify(user)) : localStorage.removeItem("user"), [user]);
-    useEffect(() => token ? localStorage.setItem("token", token) : localStorage.removeItem("token"), [token]);
+    useEffect(() => {
+        if (user) localStorage.setItem("user", JSON.stringify(user));
+        else localStorage.removeItem("user");
+    }, [user]);
 
-    const login = useCallback((userData, accessToken, refreshToken) => {
+    useEffect(() => {
+        if (token) localStorage.setItem("token", token);
+        else localStorage.removeItem("token");
+    }, [token]);
+
+    const login = useCallback((userData, accessToken) => {
         setUser(userData);
         setToken(accessToken);
-        localStorage.setItem("refreshToken", refreshToken); // persist refresh token for incognito
+        localStorage.setItem("token", accessToken);
     }, []);
+
 
     const logout = useCallback(() => {
         setUser(null);
@@ -44,6 +49,12 @@ const AppContextProvider = ({ children }) => {
         localStorage.removeItem("refreshToken");
         toast.success("User logged out successfully");
     }, []);
+
+    // Set global logout handler **after logout exists**
+    useEffect(() => {
+        setLogoutHandler(logout);
+    }, [logout]);
+
 
     // refresh token logic
     const refreshTokenFunc = useCallback(async () => {
